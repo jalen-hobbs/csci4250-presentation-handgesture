@@ -1,11 +1,9 @@
-
 import cv2
 import mediapipe as mp
 import pyautogui
 import time
 import math
 
-# Settings
 CAMERA_INDEX = 0
 MODEL_PATH = "hand_landmarker.task"
 
@@ -15,10 +13,14 @@ VIDEO_Y = 540
 SWIPE_DISTANCE = 0.12
 COOLDOWN = 1.0
 FIST_HOLD = 2.0
+HOLD_SECONDS = 2
+LEFT_ZONE = 0.30
+RIGHT_ZONE = 0.70
+
+zone_start = None
+active_zone = None
 
 pyautogui.FAILSAFE = True
-
-# New MediaPipe Tasks API
 BaseOptions = mp.tasks.BaseOptions
 HandLandmarker = mp.tasks.vision.HandLandmarker
 HandLandmarkerOptions = mp.tasks.vision.HandLandmarkerOptions
@@ -28,17 +30,14 @@ VisionRunningMode = mp.tasks.vision.RunningMode
 def distance(a, b):
     return math.hypot(a.x - b.x, a.y - b.y)
 
-
 def finger_up(hand, tip, joint):
     return hand[tip].y < hand[joint].y
-
 
 def recognize_gesture(hand):
     index = finger_up(hand, 8, 6)
     middle = finger_up(hand, 12, 10)
     ring = finger_up(hand, 16, 14)
     pinky = finger_up(hand, 20, 18)
-
     thumb = distance(hand[4], hand[5]) > distance(hand[3], hand[5])
 
     if index and not middle and not ring and not pinky:
@@ -51,7 +50,6 @@ def recognize_gesture(hand):
         return "fist"
 
     return "other"
-
 
 def main():
     camera = cv2.VideoCapture(CAMERA_INDEX)
@@ -84,11 +82,8 @@ def main():
 
                 if not success:
                     break
-
-                # Mirror webcam view
                 frame = cv2.flip(frame, 1)
                 rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
                 image = mp.Image(
                     image_format=mp.ImageFormat.SRGB,
                     data=rgb
@@ -106,12 +101,10 @@ def main():
                     hand = result.hand_landmarks[0]
                     gesture = recognize_gesture(hand)
 
-                    # Approximate hand position using wrist landmark
+                    
                     x = hand[0].x
                     y = hand[0].y
                     now = time.monotonic()
-
-                    # Draw hand landmarks
                     h, w = frame.shape[:2]
                     for landmark in hand:
                         px = int(landmark.x * w)
@@ -119,8 +112,32 @@ def main():
                         cv2.circle(
                             frame, (px, py), 4, (0, 255, 0), -1
                         )
-                        # Open-hand swipe left or right
-# Open-hand swipe left or right
+                    palm_x = hand[0].x
+                    if gesture=="open":
+                        if palm_x < LEFT_ZONE:
+                            zone = "left"
+                        elif palm_x > RIGHT_ZONE:
+                            zone = "right"
+                        else:
+                            zone = None
+
+                        if zone is None:
+                            active_zone = None
+                            zone_start = None
+                        elif zone != active_zone:
+                            active_zone = zone
+                            zone_start = now
+                        elif zone_start is not None and now - zone_start >= HOLD_SECONDS:
+                            if now - last_action >= COOLDOWN:
+                                pyautogui.press("left" if zone == "left" else "right")
+                                label = "Previous slide" if zone == "left" else "Next slide"
+                                last_action = now
+                            active_zone = None
+                            zone_start = None
+                    else:
+                        active_zone = None
+                        zone_start = None
+ 
                     if (
                         gesture == "point"
                         and not pointing
@@ -133,7 +150,6 @@ def main():
 
                     pointing = gesture == "point"
 
-                    # Hold fist in the center to close PowerPoint
                     in_center = (
                         0.35 <= x <= 0.65
                         and 0.25 <= y <= 0.75
@@ -158,7 +174,7 @@ def main():
                     if gesture == "open":
                         status = status if status in (
                             "NEXT SLIDE", "PREVIOUS SLIDE"
-                        ) else "Open hand: swipe"
+                        ) else "Open hand: move"
                     elif gesture == "point":
                         status = "Point: video click"
                     elif gesture == "fist" and not in_center:
@@ -200,5 +216,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
