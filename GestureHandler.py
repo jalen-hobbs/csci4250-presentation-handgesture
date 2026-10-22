@@ -112,32 +112,7 @@ def main():
                         cv2.circle(
                             frame, (px, py), 4, (0, 255, 0), -1
                         )
-                    palm_x = hand[0].x
-                    if gesture=="open":
-                        if palm_x < LEFT_ZONE:
-                            zone = "left"
-                        elif palm_x > RIGHT_ZONE:
-                            zone = "right"
-                        else:
-                            zone = None
-
-                        if zone is None:
-                            active_zone = None
-                            zone_start = None
-                        elif zone != active_zone:
-                            active_zone = zone
-                            zone_start = now
-                        elif zone_start is not None and now - zone_start >= HOLD_SECONDS:
-                            if now - last_action >= COOLDOWN:
-                                pyautogui.press("left" if zone == "left" else "right")
-                                label = "Previous slide" if zone == "left" else "Next slide"
-                                last_action = now
-                            active_zone = None
-                            zone_start = None
-                    else:
-                        active_zone = None
-                        zone_start = None
- 
+#code needed for swiping hands to move powpoint left and right
                     if (
                         gesture == "point"
                         and not pointing
@@ -216,6 +191,5 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
 
