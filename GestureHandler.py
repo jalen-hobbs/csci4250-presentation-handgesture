@@ -21,6 +21,7 @@ zone_start = None
 active_zone = None
 
 pyautogui.FAILSAFE = True
+#Google's hand landmarks detection. hand_landmark.task file is needed for mediapipe to run
 BaseOptions = mp.tasks.BaseOptions
 HandLandmarker = mp.tasks.vision.HandLandmarker
 HandLandmarkerOptions = mp.tasks.vision.HandLandmarkerOptions
@@ -112,7 +113,8 @@ def main():
                         cv2.circle(
                             frame, (px, py), 4, (0, 255, 0), -1
                         )
-#code needed for swiping hands to move powpoint left and right
+#Code needs to be added for hand swiping.  Swipping rigt will change powerpoint to next slide. Swipping left will go to previous slide
+#Point gesture works for starting a video but the only issue is that it will also change the slide so I will probably change the pyautogui.click to some other key
                     if (
                         gesture == "point"
                         and not pointing
@@ -129,7 +131,8 @@ def main():
                         0.35 <= x <= 0.65
                         and 0.25 <= y <= 0.75
                     )
-
+#This method also works correctly.  Holding up a fist in the center of the screen for a couple of seconds will close the powerpoint.
+#This gesture probably needs the extra sep of being in the middle so that the powerpoint doesn't just randomly close
                     if gesture == "fist" and in_center:
                         if fist_start is None:
                             fist_start = now
@@ -145,7 +148,7 @@ def main():
                     else:
                         fist_start = None
                         fist_done = False
-
+#Next slide and previous sl
                     if gesture == "open":
                         status = status if status in (
                             "NEXT SLIDE", "PREVIOUS SLIDE"
@@ -162,6 +165,7 @@ def main():
                     fist_done = False
                     pointing = False
 
+                #
                 cv2.putText(
                     frame, "Gesture: " + gesture,
                     (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
